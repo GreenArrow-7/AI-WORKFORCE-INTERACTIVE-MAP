@@ -314,16 +314,37 @@ Rule: `lib/` never imports from `components/`. Domain logic is testable without 
 
 - [x] P1 Reference inspection (blocked — documented above)
 - [x] P2 ARCHITECTURE.md, directory structure, tooling
-- [ ] P3 Zod schemas, tool registry, seed catalogue (~60 agents), catalog loader + indexes
-- [ ] P4 App shell, design tokens, dark/light themes, top nav
-- [ ] P5 Radial overview map, camera, controls, tooltip
-- [ ] P6 Department tree layout + animated transitions, active path, hover closure
-- [ ] P7 Agent drawer, skill-file preview, copy/download
-- [ ] P8 Status system, repository layer, progress rollups
-- [ ] P9 Global search (⌘K, fuzzy) + filters
-- [ ] P10 Export / import / copy summary / reset
-- [ ] P11 Rollout view (autonomy lanes, progressive disclosure)
-- [ ] P12 Command centers + interactive dashboards
-- [ ] P13 Responsive: tablet reduction, mobile drill-down + bottom sheet
-- [ ] P14 Accessibility pass, text alternative, 300-node performance check
-- [ ] P15 Visual polish, clean `typecheck` + `lint` + `test` + `build`
+- [x] P3 Zod schemas, tool registry, seed catalogue (63 agents), catalog loader + indexes
+- [x] P4 App shell, design tokens, dark/light themes, top nav
+- [x] P5 Radial overview map, camera, controls, tooltip
+- [x] P6 Department tree layout + animated transitions, active path, hover closure
+- [x] P7 Agent drawer, skill-file preview, copy/download
+- [x] P8 Status system, repository layer, progress rollups
+- [x] P9 Global search (⌘K, fuzzy) + filters
+- [x] P10 Export / import / copy summary / reset
+- [x] P11 Rollout view (autonomy lanes, progressive disclosure)
+- [x] P12 Command centers + interactive dashboards
+- [x] P13 Responsive: tablet reduction, mobile drill-down + bottom sheet
+- [x] P14 Accessibility pass, text alternative, 300- and 1,000-node performance checks
+- [x] P15 Visual polish, clean `typecheck` + `lint` + `test` + `build`
+
+## 9. Verification
+
+| Command | Covers |
+| --- | --- |
+| `npm run verify` | strict typecheck, lint, 134 unit tests |
+| `npm run test:browser` | 49 checks walking §43's definition of done in Chromium |
+
+Unit suites cover schema validation and loader resilience (malformed records,
+cross-department functions, dangling references, cycles, duplicate ids), progress
+rollups and deployment recommendations, dependency closure, fuzzy search, route
+parsing and repair, export/import validation, localStorage recovery, skill-file
+generation and Markdown tokenising, and layout correctness including
+non-collision at 300 and 1,000 agents.
+
+The browser walkthrough is deliberately a real browser rather than jsdom: the
+core of this product is a pan-and-zoom SVG canvas whose behaviour depends on
+pointer capture, hit-testing and layout, none of which jsdom models. It caught
+four defects that unit tests could not have: pointer capture swallowing node
+clicks, the brain's connector crossing the agent ring, fit-to-screen clipping
+every label, and a stale hover dimming a freshly opened department.
