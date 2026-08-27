@@ -32,9 +32,21 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run build
       # Serve the production build, wait for it, then walk the definition of done.
+      # The readiness loop is plain curl rather than a helper package, so CI
+      # depends only on what the repository actually declares.
       - run: |
           npm start &
-          npx wait-on http://localhost:3000/map --timeout 60000
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null http://localhost:3000/map; then
+              echo "server ready after ${i}s"
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "server did not become ready within 60s" >&2
+              exit 1
+            fi
+            sleep 1
+          done
           npm run test:browser
         env:
           BASE_URL: http://localhost:3000
