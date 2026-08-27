@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils/cn';
 
 /** Scale thresholds at which detail is dropped. Applied via a data attribute. */
 const ZOOM_BANDS = [
-  { max: 0.34, band: 'far' },
-  { max: 0.62, band: 'mid' },
+  { max: 0.3, band: 'far' },
+  { max: 0.52, band: 'mid' },
   { max: Infinity, band: 'near' },
 ] as const;
 

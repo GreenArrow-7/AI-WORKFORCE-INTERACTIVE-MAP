@@ -3,7 +3,7 @@
 import { memo } from 'react';
 import { accentVar } from '@/lib/ui/tokens';
 import type { GraphNode } from '@/lib/graph/types';
-import { NodeShell, radialLabelTransform, type NodeInteraction } from './node-shell';
+import { NodeShell, radialTextPlacement, type NodeInteraction } from './node-shell';
 
 interface FunctionNodeProps extends NodeInteraction {
   node: GraphNode;
@@ -17,7 +17,8 @@ export const FunctionNode = memo(function FunctionNode({
   onActivate,
   onHoverChange,
 }: FunctionNodeProps) {
-  const label = radialLabelTransform(node, 12);
+  // Only three or four per department, so they can stay upright.
+  const label = radialTextPlacement(node, 14);
   const accent = accentVar(node.accent);
 
   return (
@@ -31,16 +32,11 @@ export const FunctionNode = memo(function FunctionNode({
       <circle r={node.radius} className="graph-fn-core" style={{ ['--node-accent' as string]: accent }} />
       <circle r={node.radius * 0.34} fill={accent} fillOpacity={0.85} />
 
-      <g transform={label.transform}>
+      <g transform={`translate(${label.x.toFixed(1)},${label.y.toFixed(1)})`}>
         <text className="graph-label graph-label-fn" textAnchor={label.anchor} dominantBaseline="middle">
           {node.label}
         </text>
-        <text
-          className="graph-sublabel graph-sublabel-fn"
-          textAnchor={label.anchor}
-          dominantBaseline="middle"
-          y={12}
-        >
+        <text className="graph-sublabel graph-sublabel-fn" textAnchor={label.anchor} y={13}>
           {node.sublabel}
         </text>
       </g>

@@ -55,6 +55,25 @@ export function NodeShell({ node, selected, ariaLabel, children, onActivate, onH
 }
 
 /**
+ * Horizontal label placement, offset along the node's own radius.
+ *
+ * Used where there are few enough labels that they will not collide — the text
+ * stays upright, which is markedly easier to read than a rotated label sitting
+ * at the bottom of the circle.
+ */
+export function radialTextPlacement(
+  node: GraphNode,
+  offset: number,
+): { x: number; y: number; anchor: 'start' | 'middle' | 'end' } {
+  const dx = Math.cos(node.angle - Math.PI / 2);
+  const dy = Math.sin(node.angle - Math.PI / 2);
+  const distance = node.radius + offset;
+  const x = dx * distance;
+  const anchor = x > 8 ? 'start' : x < -8 ? 'end' : 'middle';
+  return { x, y: dy * distance, anchor };
+}
+
+/**
  * Radial label placement: rotated to sit along its own radius, flipped on the
  * left half so text never reads upside down. This is what lets a ring of
  * hundreds of agents stay legible.

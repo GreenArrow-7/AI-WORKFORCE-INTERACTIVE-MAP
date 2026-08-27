@@ -17,7 +17,7 @@ export const commandCenters: CommandCenter[] = [
     departmentIds: ['dep-sales', 'dep-deals'],
     order: 0,
     metrics: [
-      { id: 'm-pipeline-value', label: 'Pipeline value', value: 4_182_000, format: 'currency', delta: 0.12, higherIsBetter: true, series: [3.2, 3.4, 3.3, 3.7, 3.9, 3.7, 4.0, 4.18] },
+      { id: 'm-pipeline-value', label: 'Pipeline value', value: 4_182_000, format: 'currency', delta: 0.12, higherIsBetter: true, series: [3_200_000, 3_400_000, 3_300_000, 3_700_000, 3_900_000, 3_700_000, 4_000_000, 4_182_000] },
       { id: 'm-open-opps', label: 'Open opportunities', value: 147, format: 'number', delta: 0.04, higherIsBetter: true, series: [128, 132, 136, 139, 141, 138, 144, 147] },
       { id: 'm-qualified', label: 'Qualified leads', value: 312, format: 'number', delta: 0.19, higherIsBetter: true, series: [214, 228, 241, 256, 268, 279, 296, 312] },
       { id: 'm-conversion', label: 'Lead → opportunity', value: 0.184, format: 'percent', delta: 0.02, higherIsBetter: true, series: [0.16, 0.166, 0.171, 0.169, 0.175, 0.178, 0.181, 0.184] },
@@ -69,7 +69,7 @@ export const commandCenters: CommandCenter[] = [
     order: 2,
     metrics: [
       { id: 'm-published', label: 'Pieces published', value: 34, format: 'number', delta: 0.42, higherIsBetter: true, series: [18, 21, 22, 25, 27, 29, 31, 34] },
-      { id: 'm-organic', label: 'Organic sessions', value: 48_200, format: 'number', delta: 0.09, higherIsBetter: true, series: [39.1, 40.8, 41.9, 43.2, 44.6, 45.8, 46.9, 48.2] },
+      { id: 'm-organic', label: 'Organic sessions', value: 48_200, format: 'number', delta: 0.09, higherIsBetter: true, series: [39_100, 40_800, 41_900, 43_200, 44_600, 45_800, 46_900, 48_200] },
       { id: 'm-mql', label: 'Marketing-qualified', value: 186, format: 'number', delta: 0.14, higherIsBetter: true, series: [141, 148, 152, 161, 167, 172, 179, 186] },
       { id: 'm-cpl', label: 'Cost per lead', value: 84, format: 'currency', delta: -0.17, higherIsBetter: false, series: [112, 108, 103, 99, 94, 91, 87, 84] },
       { id: 'm-gate-fail', label: 'Brand gate failures', value: 0.06, format: 'percent', delta: -0.38, higherIsBetter: false, series: [0.14, 0.13, 0.11, 0.10, 0.09, 0.08, 0.07, 0.06] },
@@ -143,11 +143,13 @@ export const commandCenters: CommandCenter[] = [
     departmentIds: ['dep-sales', 'dep-deals', 'dep-marketing', 'dep-operations', 'dep-intelligence', 'dep-customer', 'dep-back-office'],
     order: 5,
     metrics: [
-      { id: 'm-arr', label: 'ARR', value: 14_600_000, format: 'currency', delta: 0.18, higherIsBetter: true, series: [11.2, 11.8, 12.3, 12.9, 13.4, 13.8, 14.2, 14.6] },
+      { id: 'm-arr', label: 'ARR', value: 14_600_000, format: 'currency', delta: 0.18, higherIsBetter: true, series: [11_200_000, 11_800_000, 12_300_000, 12_900_000, 13_400_000, 13_800_000, 14_200_000, 14_600_000] },
       { id: 'm-nrr', label: 'Net retention', value: 1.08, format: 'percent', delta: 0.03, higherIsBetter: true, series: [1.02, 1.03, 1.04, 1.05, 1.06, 1.06, 1.07, 1.08] },
       { id: 'm-gross-margin', label: 'Gross margin', value: 0.79, format: 'percent', delta: 0.02, higherIsBetter: true, series: [0.74, 0.75, 0.76, 0.76, 0.77, 0.78, 0.78, 0.79] },
       { id: 'm-headcount', label: 'Headcount', value: 180, format: 'number', delta: 0.06, higherIsBetter: true, series: [158, 162, 166, 169, 172, 175, 178, 180] },
       { id: 'm-decisions', label: 'Decisions pending', value: 4, format: 'number', delta: -0.2, higherIsBetter: false, series: [8, 7, 7, 6, 6, 5, 5, 4] },
+      // Value is overridden at render time with real rollout progress — see
+      // `Dashboard`. Zero is the correct figure for an untouched workspace.
       { id: 'm-agents-live', label: 'Agents live', value: 0, format: 'percent', delta: 0, higherIsBetter: true },
     ],
     widgets: [

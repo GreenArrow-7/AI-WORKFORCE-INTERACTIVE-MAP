@@ -33,8 +33,8 @@
   --text-inverse: #0b0c0f;
 
   /* Graph */
-  --graph-edge: #2a2f38;
-  --graph-edge-active: #5a6474;
+  --graph-edge: #363c48;
+  --graph-edge-active: #6b7688;
   --graph-grid: #12151a;
   --graph-halo: rgb(255 255 255 / 0.05);
 
@@ -94,8 +94,8 @@
   --text-muted: #858d9c;
   --text-inverse: #ffffff;
 
-  --graph-edge: #d3d7de;
-  --graph-edge-active: #7d8595;
+  --graph-edge: #c8ccd5;
+  --graph-edge-active: #6f7787;
   --graph-grid: #eff0f4;
   --graph-halo: rgb(0 0 0 / 0.04);
 
@@ -348,14 +348,15 @@ body {
 
 .graph-edge-hierarchy {
   stroke: var(--graph-edge);
-  stroke-width: 1.25;
+  stroke-width: 1.5;
 }
 
 .graph-edge-dependency {
   stroke: var(--graph-edge);
   stroke-width: 1;
   stroke-dasharray: 3 4;
-  opacity: 0.5;
+  /* Present but quiet at rest; hovering an agent brings its own chain forward. */
+  opacity: 0.28;
 }
 
 /* --- Dimming ------------------------------------------------------------ */
@@ -440,9 +441,12 @@ body {
   stroke-width: 2.5;
 }
 
-/* SVG focus rings need to be drawn by us; the outline does not follow shape. */
-.graph-node:focus-visible {
-  outline: none;
+/* The default outline is a bounding box around the node *and its labels*, which
+   is neither accurate nor attractive. Suppress it everywhere inside the canvas;
+   the focus stroke drawn on the node shape below is the real indicator. */
+[data-graph-canvas] :focus,
+[data-graph-canvas] :focus-visible {
+  outline: none !important;
 }
 
 .graph-node:focus-visible .graph-agent-core,
@@ -457,7 +461,8 @@ body {
 
 .graph-label,
 .graph-sublabel {
-  pointer-events: none;
+  /* Labels are part of the node's hit target: aiming at the name is at least as
+     natural as aiming at a 14px circle. */
   user-select: none;
   font-family: var(--font-sans);
 }

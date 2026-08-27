@@ -254,6 +254,7 @@ export function bindCameraInteraction(
 ): () => void {
   const threshold = options.dragThreshold ?? 4;
   let pointerId: number | null = null;
+  let captured = false;
   let lastX = 0;
   let lastY = 0;
   let travelled = 0;
@@ -262,10 +263,14 @@ export function bindCameraInteraction(
     // Primary button only; let right-click through to the browser.
     if (event.button !== 0 || pointerId !== null) return;
     pointerId = event.pointerId;
+    captured = false;
     lastX = event.clientX;
     lastY = event.clientY;
     travelled = 0;
-    element.setPointerCapture?.(event.pointerId);
+    // Deliberately no pointer capture here. Capturing on pointerdown retargets
+    // the subsequent `click` to this container, which would stop every node
+    // click from ever reaching the node. Capture starts only once the press has
+    // actually become a drag, below.
   };
 
   const onPointerMove = (event: PointerEvent): void => {
@@ -276,13 +281,30 @@ export function bindCameraInteraction(
     lastY = event.clientY;
     travelled += Math.abs(dx) + Math.abs(dy);
     if (travelled < threshold) return;
+
+    // Now it is a drag: capture so the gesture survives leaving the element.
+    if (!captured) {
+      captured = true;
+      try {
+        element.setPointerCapture?.(event.pointerId);
+      } catch {
+        // Capture is a convenience; the drag still works without it.
+      }
+    }
     camera.panBy(dx, dy);
   };
 
   const endDrag = (event: PointerEvent): void => {
     if (pointerId !== event.pointerId) return;
-    element.releasePointerCapture?.(event.pointerId);
+    if (captured) {
+      try {
+        element.releasePointerCapture?.(event.pointerId);
+      } catch {
+        // Already released, e.g. the pointer was cancelled.
+      }
+    }
     pointerId = null;
+    captured = false;
     options.onDragEnd?.(travelled >= threshold);
   };
 

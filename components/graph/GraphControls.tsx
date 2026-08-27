@@ -40,7 +40,7 @@ export function GraphControls({ camera, bounds }: GraphControlsProps) {
 
       <span aria-hidden className="mx-0.5 h-4 w-px bg-line" />
 
-      <ControlButton label="Fit to screen" onClick={() => camera.fit(bounds, 110)}>
+      <ControlButton label="Fit to screen" onClick={() => camera.fit(bounds, 84)}>
         <Maximize2 size={12} aria-hidden />
       </ControlButton>
 

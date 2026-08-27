@@ -2,6 +2,7 @@
 
 import { memo } from 'react';
 import { accentVar, percent } from '@/lib/ui/tokens';
+import { resolveIcon } from '@/components/shared/DataIcon';
 import type { GraphNode } from '@/lib/graph/types';
 import { NodeShell, type NodeInteraction } from './node-shell';
 
@@ -12,6 +13,8 @@ interface DepartmentNodeProps extends NodeInteraction {
   progress: number;
   liveCount: number;
   totalCount: number;
+  /** Lucide icon name from the department record, resolved via an allow-list. */
+  icon: string;
 }
 
 /**
@@ -25,9 +28,11 @@ export const DepartmentNode = memo(function DepartmentNode({
   progress,
   liveCount,
   totalCount,
+  icon,
   onActivate,
   onHoverChange,
 }: DepartmentNodeProps) {
+  const Icon = resolveIcon(icon);
   const r = node.radius;
   const arcR = r + 7;
   const circumference = 2 * Math.PI * arcR;
@@ -55,7 +60,9 @@ export const DepartmentNode = memo(function DepartmentNode({
       )}
 
       <circle r={r} className="graph-dept-core" style={{ ['--node-accent' as string]: accent }} />
-      <circle r={r * 0.3} fill={accent} fillOpacity={0.9} />
+      <g transform="translate(-11,-11)" className="graph-dept-icon" aria-hidden>
+        <Icon width={22} height={22} stroke={accent} strokeWidth={1.6} />
+      </g>
 
       <text className="graph-label graph-label-dept" y={arcR + 20} textAnchor="middle">
         {node.label}

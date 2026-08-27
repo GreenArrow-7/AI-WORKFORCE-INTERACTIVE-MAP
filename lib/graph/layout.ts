@@ -11,15 +11,22 @@ import { BRAIN_NODE_ID, type Bounds, type GraphEdge, type GraphLayout, type Grap
 const RADIUS = { brain: 52, department: 40, function: 22, agent: 14 } as const;
 
 /** Minimum arc length between sibling nodes; drives adaptive ring radii. */
-const MIN_ARC = { department: 210, agent: 40, function: 120 } as const;
+const MIN_ARC = { department: 210, agent: 44, function: 120 } as const;
 
-const OVERVIEW_MIN_RING = 360;
+const OVERVIEW_MIN_RING = 340;
 
-/** Department view leaves a wedge at the top for the Company Brain link. */
+/**
+ * The department view leaves a 60° wedge free for the Company Brain.
+ *
+ * Angles run clockwise from the top, so starting the tree at +30° and running
+ * 300° puts the gap at the *top* — where the brain actually sits. Starting at
+ * -150° would place the gap at the bottom and route the brain's link straight
+ * through the agent ring.
+ */
 const DEPARTMENT_ARC = (300 * Math.PI) / 180;
-const DEPARTMENT_ARC_START = -DEPARTMENT_ARC / 2;
-const DEPARTMENT_MIN_AGENT_RING = 520;
-const BRAIN_OFFSET_ABOVE = 190;
+const DEPARTMENT_ARC_START = (2 * Math.PI - DEPARTMENT_ARC) / 2;
+const DEPARTMENT_MIN_AGENT_RING = 300;
+const BRAIN_OFFSET_ABOVE = 95;
 
 export interface LayoutInput {
   catalog: Catalog;
@@ -66,14 +73,27 @@ function dependencyArcPath(from: GraphNode, to: GraphNode): string {
   while (delta > Math.PI) delta -= 2 * Math.PI;
   while (delta < -Math.PI) delta += 2 * Math.PI;
 
+  // Bow inward, but never far enough to cross the middle of the composition —
+  // that is what turns a dependency layer into a thicket.
   const spread = Math.min(Math.abs(delta) / Math.PI, 1);
-  const pull = 0.82 - spread * 0.55;
+  const pull = 0.9 - spread * 0.2;
   const midAngle = from.angle + delta / 2;
   const midRadius = ((Math.hypot(from.x, from.y) + Math.hypot(to.x, to.y)) / 2) * pull;
   const c = polar(midAngle, midRadius);
 
   return `M${from.x.toFixed(2)},${from.y.toFixed(2)}Q${c.x.toFixed(2)},${c.y.toFixed(2)} ${to.x.toFixed(2)},${to.y.toFixed(2)}`;
 }
+
+/**
+ * Room a node's label needs beyond its own radius. Without this the camera fits
+ * the circles and clips every label, which is what the user actually reads.
+ */
+const LABEL_ALLOWANCE: Record<GraphNode['kind'], number> = {
+  brain: 46,
+  department: 46,
+  function: 96,
+  agent: 132,
+};
 
 function boundsOf(nodes: readonly GraphNode[]): Bounds {
   if (nodes.length === 0) return { minX: -100, minY: -100, maxX: 100, maxY: 100 };
@@ -82,10 +102,11 @@ function boundsOf(nodes: readonly GraphNode[]): Bounds {
   let maxX = -Infinity;
   let maxY = -Infinity;
   for (const n of nodes) {
-    minX = Math.min(minX, n.x - n.radius);
-    minY = Math.min(minY, n.y - n.radius);
-    maxX = Math.max(maxX, n.x + n.radius);
-    maxY = Math.max(maxY, n.y + n.radius);
+    const reach = n.radius + LABEL_ALLOWANCE[n.kind];
+    minX = Math.min(minX, n.x - reach);
+    minY = Math.min(minY, n.y - reach);
+    maxX = Math.max(maxX, n.x + reach);
+    maxY = Math.max(maxY, n.y + reach);
   }
   return { minX, minY, maxX, maxY };
 }
@@ -205,16 +226,18 @@ function departmentLayout(input: LayoutInput): GraphLayout {
     };
   });
 
+  const visibleAgentCount = functionData.reduce((sum, f) => sum + f.children.length, 0);
+
   const root: TreeDatum = {
     id: department.id,
     kind: 'department',
+    // A graph label has to be a figure, not a sentence — the mission belongs in
+    // the breadcrumb and the drawer, where there is room to read it.
     label: department.name,
-    sublabel: department.mission,
+    sublabel: `${functionData.length} functions · ${visibleAgentCount} agents`,
     agent: null,
     children: functionData,
   };
-
-  const visibleAgentCount = functionData.reduce((sum, f) => sum + f.children.length, 0);
   const agentRing = ringRadius(visibleAgentCount, MIN_ARC.agent, DEPARTMENT_ARC, DEPARTMENT_MIN_AGENT_RING);
   const functionRing = Math.max(
     ringRadius(functionData.length, MIN_ARC.function, DEPARTMENT_ARC, agentRing * 0.5),

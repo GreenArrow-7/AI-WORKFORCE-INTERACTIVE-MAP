@@ -43,6 +43,11 @@ export function WorkforceMap() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const hoveredRef = useRef<string | null>(null);
+  // Hover is disarmed across a scene change and re-armed by real pointer
+  // movement — see the effect below. A hover that arrives while disarmed is held
+  // here and applied the moment arming happens.
+  const hoverArmedRef = useRef(true);
+  const pendingHoverRef = useRef<GraphNode | null>(null);
   const [tooltip, setTooltip] = useState<TooltipTarget | null>(null);
   const [pulseAt, setPulseAt] = useState<{ x: number; y: number; key: number } | null>(null);
 
@@ -69,12 +74,12 @@ export function WorkforceMap() {
   // Fit whenever the layout changes shape. The department transition is a
   // camera move, not a navigation (§7).
   useEffect(() => {
-    const id = requestAnimationFrame(() => camera.fit(layout.bounds, 110));
+    const id = requestAnimationFrame(() => camera.fit(layout.bounds, 84));
     return () => cancelAnimationFrame(id);
   }, [camera, layout]);
 
   const handleResize = useCallback(() => {
-    camera.fit(layout.bounds, 110, 0);
+    camera.fit(layout.bounds, 84, 0);
   }, [camera, layout]);
 
   /* --- highlight ------------------------------------------------------- */
@@ -91,13 +96,40 @@ export function WorkforceMap() {
     [highlight, layout],
   );
 
+  /*
+   * Entering or leaving a department replaces the whole scene under a cursor
+   * that has not moved. Whatever lands beneath it would otherwise register as a
+   * hover and dim the entire tree the user just opened — so hover is disarmed on
+   * every scene change and re-armed by the next genuine pointer movement.
+   */
+  useEffect(() => {
+    hoveredRef.current = null;
+    hoverArmedRef.current = false;
+    pendingHoverRef.current = null;
+    setTooltip(null);
+
+    const host = canvasRef.current;
+    if (!host) return;
+    const arm = (): void => {
+      hoverArmedRef.current = true;
+      host.removeEventListener('pointermove', arm);
+      // `pointerenter` precedes `pointermove`, so a genuine hover that began
+      // this movement is already waiting. Apply it rather than swallowing it.
+      const pending = pendingHoverRef.current;
+      pendingHoverRef.current = null;
+      if (pending) applyHoverRef.current(pending);
+    };
+    host.addEventListener('pointermove', arm);
+    return () => host.removeEventListener('pointermove', arm);
+  }, [layout]);
+
   // Selection highlights persistently; hover overrides it while it lasts.
   useEffect(() => {
     if (hoveredRef.current) return;
     applyHighlight(selectedAgentId ?? (brainOpen ? BRAIN_NODE_ID : null));
   }, [applyHighlight, selectedAgentId, brainOpen]);
 
-  const handleHoverChange = useCallback(
+  const applyHover = useCallback(
     (node: GraphNode | null) => {
       hoveredRef.current = node?.id ?? null;
       applyHighlight(node?.id ?? selectedAgentId ?? (brainOpen ? BRAIN_NODE_ID : null));
@@ -115,6 +147,25 @@ export function WorkforceMap() {
       });
     },
     [applyHighlight, agentStates, brainOpen, camera, selectedAgentId],
+  );
+
+  // The arming listener is registered once per scene, so it reaches the current
+  // `applyHover` through a ref rather than by re-subscribing on every change.
+  const applyHoverRef = useRef(applyHover);
+  useEffect(() => {
+    applyHoverRef.current = applyHover;
+  }, [applyHover]);
+
+  const handleHoverChange = useCallback(
+    (node: GraphNode | null) => {
+      if (node && !hoverArmedRef.current) {
+        pendingHoverRef.current = node;
+        return;
+      }
+      pendingHoverRef.current = null;
+      applyHover(node);
+    },
+    [applyHover],
   );
 
   // The tooltip is positioned once, at hover time. Rather than track the camera
@@ -227,6 +278,7 @@ export function WorkforceMap() {
                 progress={summary?.completion ?? 0}
                 liveCount={summary?.counts.live ?? 0}
                 totalCount={summary?.total ?? 0}
+                icon={catalog.indexes.departmentById.get(node.id)?.icon ?? 'Boxes'}
                 onActivate={handleActivate}
                 onHoverChange={handleHoverChange}
               />

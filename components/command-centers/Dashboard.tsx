@@ -57,6 +57,19 @@ export function Dashboard({ centre, onBack }: { centre: CommandCenter; onBack: (
     return map;
   }, [progress]);
 
+  /**
+   * Sample figures are fixed, but anything the user can actually change must
+   * reflect their real state — a dashboard that ignores your own progress is a
+   * screenshot, not a product (§23).
+   */
+  const metrics = useMemo(
+    () =>
+      centre.metrics.map((metric) =>
+        metric.id === 'm-agents-live' ? { ...metric, value: progress.company.completion } : metric,
+      ),
+    [centre.metrics, progress.company.completion],
+  );
+
   const data = useMemo(
     () => ({
       activity: buildActivity(catalog, centre, range),
@@ -73,9 +86,9 @@ export function Dashboard({ centre, onBack }: { centre: CommandCenter; onBack: (
   const renderWidget = (widget: Widget): React.ReactNode => {
     switch (widget.kind) {
       case 'metric-row':
-        return <MetricRow metrics={centre.metrics} range={range} />;
+        return <MetricRow metrics={metrics} range={range} />;
       case 'trend-chart':
-        return <TrendChart metrics={centre.metrics} tone={accent} />;
+        return <TrendChart metrics={metrics} tone={accent} />;
       case 'breakdown-bars':
         return <BreakdownBars bars={data.breakdown} />;
       case 'approval-queue':
