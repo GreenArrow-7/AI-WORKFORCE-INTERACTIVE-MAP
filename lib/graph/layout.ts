@@ -1,0 +1,348 @@
+import { hierarchy, tree, type HierarchyNode } from 'd3-hierarchy';
+import type { Catalog } from '@/lib/catalog';
+import type { Agent, AgentId, DepartmentId } from '@/lib/schemas';
+import { BRAIN_NODE_ID, type Bounds, type GraphEdge, type GraphLayout, type GraphNode } from './types';
+
+/* ---------------------------------------------------------------------------
+   Geometry constants. Everything else is derived, so no coordinate is ever
+   written into a component (§39).
+   ------------------------------------------------------------------------ */
+
+const RADIUS = { brain: 52, department: 40, function: 22, agent: 14 } as const;
+
+/** Minimum arc length between sibling nodes; drives adaptive ring radii. */
+const MIN_ARC = { department: 210, agent: 40, function: 120 } as const;
+
+const OVERVIEW_MIN_RING = 360;
+
+/** Department view leaves a wedge at the top for the Company Brain link. */
+const DEPARTMENT_ARC = (300 * Math.PI) / 180;
+const DEPARTMENT_ARC_START = -DEPARTMENT_ARC / 2;
+const DEPARTMENT_MIN_AGENT_RING = 520;
+const BRAIN_OFFSET_ABOVE = 190;
+
+export interface LayoutInput {
+  catalog: Catalog;
+  /** null renders the overview; an id renders that department's tree. */
+  focusDepartmentId: DepartmentId | null;
+  /**
+   * Agents to include. `null` means all. Filtering changes the layout input, not
+   * the camera, which is why filters never disturb the viewport (§16).
+   */
+  visibleAgentIds: ReadonlySet<AgentId> | null;
+}
+
+/* ---------------------------------------------------------------------------
+   Path helpers
+   ------------------------------------------------------------------------ */
+
+function polar(angle: number, radius: number): { x: number; y: number } {
+  // -90° so index 0 sits at the top rather than at 3 o'clock.
+  return { x: Math.cos(angle - Math.PI / 2) * radius, y: Math.sin(angle - Math.PI / 2) * radius };
+}
+
+/**
+ * Radial link: a cubic whose control points sit at the midpoint radius on each
+ * endpoint's own angle. This is the shape `d3.linkRadial` produces, written out
+ * so `d3-shape` need not be a dependency.
+ */
+function radialLinkPath(a1: number, r1: number, a2: number, r2: number): string {
+  const mid = (r1 + r2) / 2;
+  const p1 = polar(a1, r1);
+  const c1 = polar(a1, mid);
+  const c2 = polar(a2, mid);
+  const p2 = polar(a2, r2);
+  return `M${p1.x.toFixed(2)},${p1.y.toFixed(2)}C${c1.x.toFixed(2)},${c1.y.toFixed(2)} ${c2.x.toFixed(2)},${c2.y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
+}
+
+/**
+ * Dependency arc between two nodes on (roughly) the same ring, bowed toward the
+ * origin. Curvature scales with angular distance so near neighbours get a gentle
+ * arc and distant pairs cut across the middle instead of hugging the rim — which
+ * is what stops the dependency layer turning into a thicket (§8).
+ */
+function dependencyArcPath(from: GraphNode, to: GraphNode): string {
+  let delta = to.angle - from.angle;
+  while (delta > Math.PI) delta -= 2 * Math.PI;
+  while (delta < -Math.PI) delta += 2 * Math.PI;
+
+  const spread = Math.min(Math.abs(delta) / Math.PI, 1);
+  const pull = 0.82 - spread * 0.55;
+  const midAngle = from.angle + delta / 2;
+  const midRadius = ((Math.hypot(from.x, from.y) + Math.hypot(to.x, to.y)) / 2) * pull;
+  const c = polar(midAngle, midRadius);
+
+  return `M${from.x.toFixed(2)},${from.y.toFixed(2)}Q${c.x.toFixed(2)},${c.y.toFixed(2)} ${to.x.toFixed(2)},${to.y.toFixed(2)}`;
+}
+
+function boundsOf(nodes: readonly GraphNode[]): Bounds {
+  if (nodes.length === 0) return { minX: -100, minY: -100, maxX: 100, maxY: 100 };
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const n of nodes) {
+    minX = Math.min(minX, n.x - n.radius);
+    minY = Math.min(minY, n.y - n.radius);
+    maxX = Math.max(maxX, n.x + n.radius);
+    maxY = Math.max(maxY, n.y + n.radius);
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+/** Ring radius wide enough to give `count` siblings `minArc` of separation. */
+function ringRadius(count: number, minArc: number, arcSpan: number, floor: number): number {
+  if (count <= 1) return floor;
+  return Math.max(floor, (count * minArc) / arcSpan);
+}
+
+/* ---------------------------------------------------------------------------
+   Overview
+   ------------------------------------------------------------------------ */
+
+function overviewLayout(input: LayoutInput): GraphLayout {
+  const { catalog, visibleAgentIds } = input;
+  const nodes: GraphNode[] = [];
+  const edges: GraphEdge[] = [];
+
+  const brain: GraphNode = {
+    id: BRAIN_NODE_ID,
+    kind: 'brain',
+    label: catalog.companyBrain?.name ?? 'Company Brain',
+    sublabel: 'Shared context',
+    x: 0,
+    y: 0,
+    radius: RADIUS.brain,
+    angle: 0,
+    departmentId: null,
+    accent: null,
+    autonomy: null,
+    parentId: null,
+  };
+  nodes.push(brain);
+
+  const departments = catalog.departments;
+  const ring = ringRadius(departments.length, MIN_ARC.department, 2 * Math.PI, OVERVIEW_MIN_RING);
+
+  departments.forEach((department, index) => {
+    const angle = (index / Math.max(departments.length, 1)) * 2 * Math.PI;
+    const { x, y } = polar(angle, ring);
+
+    const all = catalog.indexes.agentsByDepartment.get(department.id) ?? [];
+    const visible = visibleAgentIds ? all.filter((a) => visibleAgentIds.has(a.id)) : all;
+
+    nodes.push({
+      id: department.id,
+      kind: 'department',
+      label: department.name,
+      sublabel: `${visible.length} agent${visible.length === 1 ? '' : 's'}`,
+      x,
+      y,
+      radius: RADIUS.department,
+      angle,
+      departmentId: department.id,
+      accent: department.accent,
+      autonomy: null,
+      parentId: BRAIN_NODE_ID,
+    });
+
+    edges.push({
+      id: `e-${BRAIN_NODE_ID}-${department.id}`,
+      kind: 'hierarchy',
+      source: BRAIN_NODE_ID,
+      target: department.id,
+      path: radialLinkPath(angle, RADIUS.brain, angle, ring - RADIUS.department),
+    });
+  });
+
+  return {
+    mode: 'overview',
+    focusId: null,
+    nodes,
+    edges,
+    bounds: boundsOf(nodes),
+    nodeById: new Map(nodes.map((n) => [n.id, n])),
+  };
+}
+
+/* ---------------------------------------------------------------------------
+   Department tree
+   ------------------------------------------------------------------------ */
+
+interface TreeDatum {
+  id: string;
+  kind: 'department' | 'function' | 'agent';
+  label: string;
+  sublabel: string | null;
+  agent: Agent | null;
+  children: TreeDatum[];
+}
+
+function departmentLayout(input: LayoutInput): GraphLayout {
+  const { catalog, focusDepartmentId, visibleAgentIds } = input;
+  const department = focusDepartmentId ? catalog.indexes.departmentById.get(focusDepartmentId) : undefined;
+  if (!department) return overviewLayout({ ...input, focusDepartmentId: null });
+
+  const functions = catalog.indexes.functionsByDepartment.get(department.id) ?? [];
+
+  const functionData: TreeDatum[] = functions.map((fn) => {
+    const all = catalog.indexes.agentsByFunction.get(fn.id) ?? [];
+    const visible = visibleAgentIds ? all.filter((a) => visibleAgentIds.has(a.id)) : all;
+    return {
+      id: fn.id,
+      kind: 'function',
+      label: fn.name,
+      sublabel: `${visible.length} agent${visible.length === 1 ? '' : 's'}`,
+      agent: null,
+      children: visible.map((agent) => ({
+        id: agent.id,
+        kind: 'agent' as const,
+        label: agent.name,
+        sublabel: fn.name,
+        agent,
+        children: [],
+      })),
+    };
+  });
+
+  const root: TreeDatum = {
+    id: department.id,
+    kind: 'department',
+    label: department.name,
+    sublabel: department.mission,
+    agent: null,
+    children: functionData,
+  };
+
+  const visibleAgentCount = functionData.reduce((sum, f) => sum + f.children.length, 0);
+  const agentRing = ringRadius(visibleAgentCount, MIN_ARC.agent, DEPARTMENT_ARC, DEPARTMENT_MIN_AGENT_RING);
+  const functionRing = Math.max(
+    ringRadius(functionData.length, MIN_ARC.function, DEPARTMENT_ARC, agentRing * 0.5),
+    agentRing * 0.46,
+  );
+
+  // d3-hierarchy is used purely as a calculator: it assigns angular positions,
+  // and we convert them to cartesian ourselves. It never touches the DOM.
+  const rootNode = hierarchy<TreeDatum>(root, (d) => d.children);
+  const layoutTree = tree<TreeDatum>()
+    .size([DEPARTMENT_ARC, 1])
+    // Cousins get twice the gap of siblings, which is what visually groups the
+    // agents under their function without drawing a container around them.
+    .separation((a, b) => (a.parent === b.parent ? 1 : 2));
+  layoutTree(rootNode);
+
+  const radiusForDepth = (depth: number): number =>
+    depth === 0 ? 0 : depth === 1 ? functionRing : agentRing;
+
+  const nodes: GraphNode[] = [];
+  const edges: GraphEdge[] = [];
+
+  const brain: GraphNode = {
+    id: BRAIN_NODE_ID,
+    kind: 'brain',
+    label: catalog.companyBrain?.name ?? 'Company Brain',
+    sublabel: 'Shared context',
+    x: 0,
+    y: -(agentRing + BRAIN_OFFSET_ABOVE),
+    radius: RADIUS.brain * 0.78,
+    angle: 0,
+    departmentId: null,
+    accent: null,
+    autonomy: null,
+    parentId: null,
+  };
+  nodes.push(brain);
+
+  rootNode.each((node: HierarchyNode<TreeDatum> & { x?: number; y?: number }) => {
+    const datum = node.data;
+    const depth = node.depth;
+    const angle = depth === 0 ? 0 : DEPARTMENT_ARC_START + (node.x ?? 0);
+    const radius = radiusForDepth(depth);
+    const { x, y } = depth === 0 ? { x: 0, y: 0 } : polar(angle, radius);
+
+    nodes.push({
+      id: datum.id,
+      kind: datum.kind,
+      label: datum.label,
+      sublabel: datum.sublabel,
+      x,
+      y,
+      radius: datum.kind === 'department' ? RADIUS.department : datum.kind === 'function' ? RADIUS.function : RADIUS.agent,
+      angle,
+      departmentId: department.id,
+      accent: department.accent,
+      autonomy: datum.agent?.autonomy ?? null,
+      parentId: node.parent?.data.id ?? BRAIN_NODE_ID,
+    });
+
+    const parent = node.parent as (HierarchyNode<TreeDatum> & { x?: number }) | null;
+    if (parent) {
+      const parentAngle = parent.depth === 0 ? angle : DEPARTMENT_ARC_START + (parent.x ?? 0);
+      const parentRadius = radiusForDepth(parent.depth);
+      const parentNodeRadius = parent.data.kind === 'department' ? RADIUS.department : RADIUS.function;
+      const childNodeRadius = datum.kind === 'function' ? RADIUS.function : RADIUS.agent;
+      edges.push({
+        id: `e-${parent.data.id}-${datum.id}`,
+        kind: 'hierarchy',
+        source: parent.data.id,
+        target: datum.id,
+        path: radialLinkPath(
+          parentAngle,
+          parentRadius + (parent.depth === 0 ? parentNodeRadius : parentNodeRadius),
+          angle,
+          radius - childNodeRadius,
+        ),
+      });
+    }
+  });
+
+  // Brain → department. Drawn as a plain vertical curve since the brain sits
+  // outside the radial system.
+  edges.push({
+    id: `e-${BRAIN_NODE_ID}-${department.id}`,
+    kind: 'hierarchy',
+    source: BRAIN_NODE_ID,
+    target: department.id,
+    path: `M0,${(brain.y + brain.radius).toFixed(2)}C0,${(brain.y / 2).toFixed(2)} 0,${(brain.y / 4).toFixed(2)} 0,${(-RADIUS.department).toFixed(2)}`,
+  });
+
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
+
+  // Dependency edges, but only between agents both visible in this layout.
+  for (const node of nodes) {
+    if (node.kind !== 'agent') continue;
+    const agent = catalog.indexes.agentById.get(node.id);
+    if (!agent) continue;
+    for (const depId of agent.dependencies) {
+      const from = nodeById.get(depId);
+      if (!from || from.kind !== 'agent') continue;
+      edges.push({
+        id: `d-${depId}-${node.id}`,
+        kind: 'dependency',
+        source: depId,
+        target: node.id,
+        path: dependencyArcPath(from, node),
+      });
+    }
+  }
+
+  return {
+    mode: 'department',
+    focusId: department.id,
+    nodes,
+    edges,
+    bounds: boundsOf(nodes),
+    nodeById,
+  };
+}
+
+/**
+ * Computes a full layout.
+ *
+ * Pure: the same input always produces the same output, which is what makes it
+ * safe to memoise on `(focusDepartmentId, filter signature)` and recompute only
+ * when one of those actually changes (§27).
+ */
+export function computeLayout(input: LayoutInput): GraphLayout {
+  return input.focusDepartmentId ? departmentLayout(input) : overviewLayout(input);
+}

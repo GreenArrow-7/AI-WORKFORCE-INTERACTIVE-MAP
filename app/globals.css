@@ -1,0 +1,538 @@
+@import 'tailwindcss';
+
+/* ============================================================================
+   Design tokens (§33)
+
+   Every colour in the product resolves through a token. Components never write
+   a literal colour, which is what lets a department be recoloured, or the whole
+   product re-themed, from this file alone.
+
+   Dark is the default: bare :root is dark. `data-theme="light"` forces light,
+   `data-theme="system"` follows the OS.
+   ========================================================================= */
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces — near-black through to elevated charcoal */
+  --bg: #08090b;
+  --bg-inset: #050608;
+  --surface: #0e1013;
+  --surface-elevated: #15181d;
+  --surface-hover: #1b1f25;
+
+  /* Lines */
+  --border: #22262d;
+  --border-strong: #313742;
+  --border-subtle: #191d23;
+
+  /* Text */
+  --text-primary: #e7e9ee;
+  --text-secondary: #9aa2b1;
+  --text-muted: #646c7c;
+  --text-inverse: #0b0c0f;
+
+  /* Graph */
+  --graph-edge: #2a2f38;
+  --graph-edge-active: #5a6474;
+  --graph-grid: #12151a;
+  --graph-halo: rgb(255 255 255 / 0.05);
+
+  /* Feedback */
+  --positive: #3fb27f;
+  --caution: #d9a441;
+  --negative: #d9614c;
+  --focus-ring: #7fa0dd;
+
+  /* Department accents — referenced by token name, never by literal (§33) */
+  --accent-amber: #d9a441;
+  --accent-violet: #9b7fd4;
+  --accent-cyan: #4badc4;
+  --accent-emerald: #4aab84;
+  --accent-rose: #cd7392;
+  --accent-indigo: #7b8bd4;
+  --accent-slate: #8892a4;
+
+  /* Status — always paired with a glyph, never colour alone (§10, §28) */
+  --status-not-started: #5b6270;
+  --status-planned: #7b8bd4;
+  --status-building: #d9a441;
+  --status-live: #3fb27f;
+
+  /* Motion. Durations follow §30: 150–350ms UI, 300–700ms graph. */
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 150ms;
+  --dur-ui: 220ms;
+  --dur-slow: 320ms;
+  --dur-graph: 560ms;
+
+  /* Elevation — soft shadows rather than large gradients (§4) */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 16px -4px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 16px 48px -12px rgb(0 0 0 / 0.6);
+}
+
+/* Light theme. The explicit choice and the OS-following mode need the same
+   values under different selectors; the two blocks are kept adjacent so they
+   are always edited together. */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #fbfbfc;
+  --bg-inset: #f1f2f5;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-hover: #f4f5f7;
+
+  --border: #e2e4e9;
+  --border-strong: #c9cdd6;
+  --border-subtle: #edeef1;
+
+  --text-primary: #14161a;
+  --text-secondary: #565d6b;
+  --text-muted: #858d9c;
+  --text-inverse: #ffffff;
+
+  --graph-edge: #d3d7de;
+  --graph-edge-active: #7d8595;
+  --graph-grid: #eff0f4;
+  --graph-halo: rgb(0 0 0 / 0.04);
+
+  --positive: #1f7d57;
+  --caution: #a4761d;
+  --negative: #b04533;
+  --focus-ring: #3a63b0;
+
+  --accent-amber: #a2751d;
+  --accent-violet: #6a4fa8;
+  --accent-cyan: #1c7a91;
+  --accent-emerald: #1c7853;
+  --accent-rose: #a24565;
+  --accent-indigo: #4a5ca8;
+  --accent-slate: #565f70;
+
+  --status-not-started: #858d9c;
+  --status-planned: #4a5ca8;
+  --status-building: #a2751d;
+  --status-live: #1c7853;
+
+  --shadow-sm: 0 1px 2px rgb(16 20 28 / 0.06);
+  --shadow-md: 0 4px 16px -4px rgb(16 20 28 / 0.1);
+  --shadow-lg: 0 16px 48px -12px rgb(16 20 28 / 0.14);
+}
+
+@media (prefers-color-scheme: light) {
+  :root[data-theme='system'] {
+    color-scheme: light;
+
+    --bg: #fbfbfc;
+    --bg-inset: #f1f2f5;
+    --surface: #ffffff;
+    --surface-elevated: #ffffff;
+    --surface-hover: #f4f5f7;
+
+    --border: #e2e4e9;
+    --border-strong: #c9cdd6;
+    --border-subtle: #edeef1;
+
+    --text-primary: #14161a;
+    --text-secondary: #565d6b;
+    --text-muted: #858d9c;
+    --text-inverse: #ffffff;
+
+    --graph-edge: #d3d7de;
+    --graph-edge-active: #7d8595;
+    --graph-grid: #eff0f4;
+    --graph-halo: rgb(0 0 0 / 0.04);
+
+    --positive: #1f7d57;
+    --caution: #a4761d;
+    --negative: #b04533;
+    --focus-ring: #3a63b0;
+
+    --accent-amber: #a2751d;
+    --accent-violet: #6a4fa8;
+    --accent-cyan: #1c7a91;
+    --accent-emerald: #1c7853;
+    --accent-rose: #a24565;
+    --accent-indigo: #4a5ca8;
+    --accent-slate: #565f70;
+
+    --status-not-started: #858d9c;
+    --status-planned: #4a5ca8;
+    --status-building: #a2751d;
+    --status-live: #1c7853;
+
+    --shadow-sm: 0 1px 2px rgb(16 20 28 / 0.06);
+    --shadow-md: 0 4px 16px -4px rgb(16 20 28 / 0.1);
+    --shadow-lg: 0 16px 48px -12px rgb(16 20 28 / 0.14);
+  }
+}
+
+/* Map the tokens onto Tailwind's theme so utilities resolve to them.
+   `inline` keeps the var() reference, which is what makes runtime theme
+   switching work without regenerating classes. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-inset: var(--bg-inset);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-hover: var(--surface-hover);
+
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-line-subtle: var(--border-subtle);
+
+  --color-fg: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-muted: var(--text-muted);
+  --color-fg-inverse: var(--text-inverse);
+
+  --color-positive: var(--positive);
+  --color-caution: var(--caution);
+  --color-negative: var(--negative);
+  --color-focus: var(--focus-ring);
+
+  --color-accent-amber: var(--accent-amber);
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-cyan: var(--accent-cyan);
+  --color-accent-emerald: var(--accent-emerald);
+  --color-accent-rose: var(--accent-rose);
+  --color-accent-indigo: var(--accent-indigo);
+  --color-accent-slate: var(--accent-slate);
+
+  --color-status-not-started: var(--status-not-started);
+  --color-status-planned: var(--status-planned);
+  --color-status-building: var(--status-building);
+  --color-status-live: var(--status-live);
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Compact type scale (§4). */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.375rem;
+}
+
+/* ============================================================================
+   Base
+   ========================================================================= */
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+}
+
+/* One visible focus treatment everywhere (§28). */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Only for elements that manage their own focus affordance. */
+.focus-none:focus-visible {
+  outline: none;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--focus-ring) 35%, transparent);
+}
+
+/* Scrollbars, kept quiet. */
+@supports (scrollbar-width: thin) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+}
+
+/* ============================================================================
+   Utilities used across the product
+   ========================================================================= */
+
+/* The faint grid behind the map. Two repeating gradients, no image request. */
+.bg-graph-grid {
+  background-image:
+    linear-gradient(to right, var(--graph-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--graph-grid) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Minimal glass, used only on floating controls over the map. */
+.glass {
+  background-color: color-mix(in oklab, var(--surface-elevated) 82%, transparent);
+  backdrop-filter: blur(12px) saturate(1.1);
+  border: 1px solid var(--border);
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Screen-reader-only, with a visible variant when focused. */
+.sr-only-focusable:not(:focus):not(:focus-within) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ============================================================================
+   Reduced motion (§28, §30)
+
+   Animation is removed, not merely shortened. The graph's camera checks the
+   same preference in JS and jumps instead of tweening.
+   ========================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================================
+   Graph
+
+   Node and edge appearance is driven entirely by data attributes written
+   imperatively by the camera and the highlight controller. Nothing here
+   requires a React render, which is what keeps hover and zoom at frame rate
+   with hundreds of nodes (§27, §31).
+   ========================================================================= */
+
+.graph-node {
+  cursor: pointer;
+  transition: opacity var(--dur-ui) var(--ease-out);
+}
+
+.graph-edge {
+  transition:
+    opacity var(--dur-ui) var(--ease-out),
+    stroke var(--dur-ui) var(--ease-out);
+  pointer-events: none;
+}
+
+.graph-edge-hierarchy {
+  stroke: var(--graph-edge);
+  stroke-width: 1.25;
+}
+
+.graph-edge-dependency {
+  stroke: var(--graph-edge);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  opacity: 0.5;
+}
+
+/* --- Dimming ------------------------------------------------------------ */
+/* When something is highlighted, everything not in the highlight set recedes.
+   One selector, no per-node bookkeeping. */
+
+[data-graph-canvas][data-highlighting='true'] .graph-node:not([data-hl='on']) {
+  opacity: 0.22;
+}
+
+[data-graph-canvas][data-highlighting='true'] .graph-edge:not([data-hl='on']) {
+  opacity: 0.1;
+}
+
+[data-graph-canvas][data-highlighting='true'] .graph-edge[data-hl='on'] {
+  stroke: var(--graph-edge-active);
+  stroke-width: 1.75;
+  opacity: 1;
+}
+
+[data-graph-canvas][data-highlighting='true'] .graph-edge-dependency[data-hl='on'] {
+  stroke: var(--node-accent, var(--graph-edge-active));
+  stroke-dasharray: 4 3;
+}
+
+/* --- Node bodies -------------------------------------------------------- */
+
+.graph-brain-halo {
+  fill: var(--graph-halo);
+  stroke: none;
+}
+
+.graph-brain-core {
+  fill: var(--surface-elevated);
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+.graph-brain-inner {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+}
+
+.graph-brain-dot {
+  fill: var(--text-secondary);
+}
+
+.graph-node:hover .graph-brain-core,
+.graph-node:focus-visible .graph-brain-core {
+  stroke: var(--text-secondary);
+}
+
+.graph-dept-core,
+.graph-fn-core {
+  fill: var(--surface-elevated);
+  stroke: var(--node-accent, var(--border-strong));
+  stroke-width: 1.5;
+  transition: filter var(--dur-ui) var(--ease-out);
+}
+
+.graph-agent-core {
+  transition: filter var(--dur-ui) var(--ease-out);
+}
+
+/* Subtle glow on the active node, not a pulsing effect (§4, §30). */
+.graph-node:hover .graph-dept-core,
+.graph-node:hover .graph-fn-core,
+.graph-node:hover .graph-agent-core,
+.graph-node:focus-visible .graph-dept-core,
+.graph-node:focus-visible .graph-fn-core,
+.graph-node:focus-visible .graph-agent-core,
+.graph-node[data-selected='true'] .graph-dept-core,
+.graph-node[data-selected='true'] .graph-fn-core,
+.graph-node[data-selected='true'] .graph-agent-core {
+  filter: drop-shadow(0 0 6px color-mix(in oklab, var(--node-accent, var(--text-secondary)) 55%, transparent));
+}
+
+.graph-node[data-selected='true'] .graph-agent-core,
+.graph-node[data-selected='true'] .graph-dept-core {
+  stroke-width: 2.5;
+}
+
+/* SVG focus rings need to be drawn by us; the outline does not follow shape. */
+.graph-node:focus-visible {
+  outline: none;
+}
+
+.graph-node:focus-visible .graph-agent-core,
+.graph-node:focus-visible .graph-fn-core,
+.graph-node:focus-visible .graph-dept-core,
+.graph-node:focus-visible .graph-brain-core {
+  stroke: var(--focus-ring);
+  stroke-width: 2.5;
+}
+
+/* --- Labels ------------------------------------------------------------- */
+
+.graph-label,
+.graph-sublabel {
+  pointer-events: none;
+  user-select: none;
+  font-family: var(--font-sans);
+}
+
+.graph-label {
+  fill: var(--text-primary);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.graph-label-brain {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.graph-label-dept {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.graph-label-agent {
+  font-size: 10.5px;
+  font-weight: 450;
+  fill: var(--text-secondary);
+}
+
+.graph-node:hover .graph-label-agent,
+.graph-node[data-selected='true'] .graph-label-agent {
+  fill: var(--text-primary);
+}
+
+.graph-sublabel {
+  fill: var(--text-muted);
+  font-size: 9.5px;
+  font-weight: 450;
+}
+
+/* --- Level of detail ---------------------------------------------------- */
+/* The band is written onto the SVG by the camera subscription; text that would
+   be unreadable at that scale is removed rather than shrunk. */
+
+[data-zoom-band='far'] .graph-label-agent,
+[data-zoom-band='far'] .graph-sublabel,
+[data-zoom-band='far'] .graph-label-fn,
+[data-zoom-band='far'] .graph-sublabel-fn,
+[data-zoom-band='far'] .graph-edge-dependency {
+  display: none;
+}
+
+[data-zoom-band='mid'] .graph-label-agent,
+[data-zoom-band='mid'] .graph-sublabel-fn {
+  display: none;
+}
+
+/* A pulse used once, to confirm a search jump landed on the right node. */
+@keyframes graph-focus-pulse {
+  0% {
+    r: var(--pulse-from, 14);
+    opacity: 0.55;
+  }
+  100% {
+    r: var(--pulse-to, 44);
+    opacity: 0;
+  }
+}
+
+.graph-focus-pulse {
+  fill: none;
+  stroke: var(--focus-ring);
+  stroke-width: 2;
+  animation: graph-focus-pulse 700ms var(--ease-out) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graph-focus-pulse {
+    display: none;
+  }
+}
