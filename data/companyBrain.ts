@@ -1,0 +1,222 @@
+import type { CompanyBrain } from '@/lib/schemas';
+
+/**
+ * Node zero: the shared context every agent reads from. Placeholder content for
+ * a fictional company — replace wholesale when a real workspace is connected.
+ *
+ * Every section carries `sourceIds`. In the MVP they all point at authored
+ * sources, but the shape is already right for ingestion (Drive, Notion, CRM,
+ * transcripts) to add sources without a schema change.
+ */
+export const companyBrain: CompanyBrain = {
+  id: 'brain-root',
+  name: 'Company Brain',
+  slug: 'brain',
+  tagline: 'The shared context every agent reads before it does anything.',
+  description:
+    'The Company Brain holds what an AI workforce needs to know to act on your behalf: who you sell to, how you talk, how work gets done, and what is off-limits. Agents read from it rather than each carrying its own copy of the truth, which is what stops fifty agents drifting in fifty directions.',
+  sections: [
+    {
+      id: 'brn-company',
+      kind: 'company',
+      title: 'Company',
+      summary:
+        'Meridian Systems is a fictional 180-person B2B software company used as placeholder context throughout this map.',
+      items: [
+        'Founded 2018, headquartered in Manchester with a Dublin office opened in 2024',
+        '180 employees across product, engineering, revenue and operations',
+        'Sells to operations and revenue teams at mid-market companies',
+        'Financial year runs February to January',
+      ],
+      sourceIds: ['src-authored-profile'],
+      order: 0,
+    },
+    {
+      id: 'brn-products',
+      kind: 'products',
+      title: 'Products & Services',
+      summary: 'One core platform with three modules, sold together more often than separately.',
+      items: [
+        'Reporting core — the metric layer and its definitions',
+        'Reconciliation module — resolves disagreement between source systems',
+        'Distribution module — scheduled and triggered delivery of reports',
+        'Implementation services, typically four to eight weeks',
+      ],
+      sourceIds: ['src-authored-profile', 'src-product-docs'],
+      order: 1,
+    },
+    {
+      id: 'brn-icp',
+      kind: 'icp',
+      title: 'Ideal Customer Profile',
+      summary:
+        'Mid-market companies with more than one source of truth for the same numbers, and someone whose job it is to care.',
+      items: [
+        'B2B, 50–500 employees, UK, Ireland or Nordics',
+        'Two or more systems producing overlapping metrics',
+        'An owned revenue-operations or business-operations function',
+        'Excluded: pre-seed companies, and anyone with a single source system',
+      ],
+      sourceIds: ['src-authored-profile', 'src-closed-won-analysis'],
+      order: 2,
+    },
+    {
+      id: 'brn-customers',
+      kind: 'customers',
+      title: 'Customers',
+      summary: '210 active accounts, concentrated in software, professional services and logistics.',
+      items: [
+        '210 active accounts, median 140 seats',
+        'Software 44%, professional services 31%, logistics 25%',
+        'Median time to first value: 21 days',
+        'Gross retention 91%, net retention 108%',
+      ],
+      sourceIds: ['src-crm-export'],
+      order: 3,
+    },
+    {
+      id: 'brn-voice',
+      kind: 'brand-voice',
+      title: 'Brand Voice',
+      summary: 'Plain, specific and unhurried. We would rather be exact than enthusiastic.',
+      items: [
+        'Write in plain English; if a sentence needs a second read, rewrite it',
+        'Say the specific number rather than "significant" or "dramatic"',
+        'Never claim an outcome we cannot evidence',
+        'Banned: "leverage", "solution" as a noun, "seamless", "game-changing"',
+        'Say "customers", never "clients"',
+      ],
+      sourceIds: ['src-brand-guide'],
+      order: 4,
+    },
+    {
+      id: 'brn-positioning',
+      kind: 'positioning',
+      title: 'Positioning',
+      summary: 'We sell agreement between systems, not another dashboard.',
+      items: [
+        'The problem is that two systems disagree, not that charts are missing',
+        'We compete against internal spreadsheets more often than against vendors',
+        'We do not position on price',
+        'Approved claim: median close cycle reduction of 43% across 34 measured accounts',
+      ],
+      sourceIds: ['src-brand-guide', 'src-closed-won-analysis'],
+      order: 5,
+    },
+    {
+      id: 'brn-processes',
+      kind: 'processes',
+      title: 'Processes',
+      summary: 'How the recurring work of the company is actually done.',
+      items: [
+        'Deal desk: any discount above 25% requires VP approval',
+        'Onboarding: 11 standard steps, target of 21 days to first value',
+        'Support: first response within 4 working hours',
+        'Month-end close: target of 5 working days',
+      ],
+      sourceIds: ['src-process-library'],
+      order: 6,
+    },
+    {
+      id: 'brn-policies',
+      kind: 'policies',
+      title: 'Policies',
+      summary: 'The constraints agents must respect without exception.',
+      items: [
+        'No customer data leaves the EU or UK region',
+        'No agent may authorise a payment, approve a price or grant system access',
+        'No competitive claim is published without product marketing approval',
+        'Recording consent is required before any transcript is processed',
+      ],
+      sourceIds: ['src-policy-set'],
+      order: 7,
+    },
+    {
+      id: 'brn-team',
+      kind: 'team',
+      title: 'Team',
+      summary: 'Who owns what, for routing and approval purposes.',
+      items: [
+        'Revenue: VP Sales, 2 sales managers, 11 AEs, 6 SDRs',
+        'Customer: 8 CSMs, 6 support agents, 2 implementation specialists',
+        'Operations: 1 ops lead, 2 analysts, 1 procurement lead',
+        'Back office: financial controller, 2 finance ops, 1 people ops, 1 compliance manager',
+      ],
+      sourceIds: ['src-authored-profile'],
+      order: 8,
+    },
+    {
+      id: 'brn-tools',
+      kind: 'tools',
+      title: 'Tools',
+      summary: 'The systems agents can read from and write to.',
+      items: [
+        'CRM: HubSpot (system of record for accounts and deals)',
+        'Warehouse: Snowflake; BI: Looker',
+        'Communication: Slack, Gmail, Zoom',
+        'Documents: Notion, Google Drive',
+        'Finance: NetSuite, Ramp',
+      ],
+      sourceIds: ['src-tool-inventory'],
+      order: 9,
+    },
+    {
+      id: 'brn-knowledge',
+      kind: 'knowledge',
+      title: 'Knowledge Sources',
+      summary:
+        'Where context comes from. Everything is authored today; the connectors below are the intended ingestion path.',
+      items: [
+        'Authored context: this Brain',
+        'Planned: product documentation from Notion',
+        'Planned: closed-won and closed-lost analysis from the warehouse',
+        'Planned: meeting transcripts, subject to recording consent',
+      ],
+      sourceIds: ['src-product-docs', 'src-crm-export', 'src-transcripts'],
+      order: 10,
+    },
+    {
+      id: 'brn-documents',
+      kind: 'documents',
+      title: 'Documents',
+      summary: 'The document sets agents are permitted to read.',
+      items: [
+        'Approved content library — proposal blocks and case studies',
+        'Policy set — 14 policies with review dates',
+        'Process library — 22 documented processes',
+        'Brand guide — voice rules, terminology, approved claims',
+      ],
+      sourceIds: ['src-brand-guide', 'src-policy-set', 'src-process-library'],
+      order: 11,
+    },
+    {
+      id: 'brn-examples',
+      kind: 'examples',
+      title: 'Examples',
+      summary: 'Worked examples that show agents what good output looks like here.',
+      items: [
+        'Three exemplar account briefs, annotated',
+        'Two exemplar first-touch emails that received replies',
+        'One exemplar incident summary',
+        'One exemplar executive brief',
+      ],
+      sourceIds: ['src-authored-profile'],
+      order: 12,
+    },
+  ],
+  sources: [
+    { id: 'src-authored-profile', kind: 'authored', label: 'Authored company profile', status: 'connected' },
+    { id: 'src-brand-guide', kind: 'authored', label: 'Brand guide', status: 'connected' },
+    { id: 'src-policy-set', kind: 'authored', label: 'Policy set', status: 'connected' },
+    { id: 'src-process-library', kind: 'authored', label: 'Process library', status: 'connected' },
+    { id: 'src-tool-inventory', kind: 'authored', label: 'Tool inventory', status: 'connected' },
+    { id: 'src-product-docs', kind: 'notion', label: 'Product documentation (Notion)', status: 'available' },
+    { id: 'src-crm-export', kind: 'crm', label: 'CRM account and deal export', status: 'available' },
+    { id: 'src-closed-won-analysis', kind: 'document', label: 'Closed-won analysis', status: 'available' },
+    { id: 'src-transcripts', kind: 'transcript', label: 'Meeting transcripts', status: 'planned' },
+    { id: 'src-drive', kind: 'drive', label: 'Shared drive', status: 'planned' },
+    { id: 'src-website', kind: 'website', label: 'Public website', status: 'planned' },
+    { id: 'src-email', kind: 'email', label: 'Shared mailboxes', status: 'planned' },
+    { id: 'src-chat', kind: 'chat', label: 'Slack channels', status: 'planned' },
+  ],
+};
