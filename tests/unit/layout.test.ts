@@ -203,54 +203,56 @@ describe('wheel intent', () => {
   });
 });
 
+/** A single department with as many agents as asked for, evenly spread. */
+function syntheticCatalog(agentCount: number) {
+  const functionCount = 12;
+  return loadCatalog({
+    departments: [
+      { id: 'd', name: 'D', slug: 'd', description: 'x', mission: 'm', accent: 'amber', icon: 'Target', order: 0 },
+    ],
+    functionGroups: Array.from({ length: functionCount }, (_, i) => ({
+      id: `f${i}`,
+      departmentId: 'd',
+      name: `F${i}`,
+      slug: `f${i}`,
+      description: 'x',
+      order: i,
+    })),
+    agents: Array.from({ length: agentCount }, (_, i) => ({
+      id: `a${i}`,
+      departmentId: 'd',
+      functionId: `f${i % functionCount}`,
+      name: `Agent ${i}`,
+      slug: `agent-${i}`,
+      shortDescription: 's',
+      description: 'd',
+      businessOutcome: 'o',
+      autonomy: (['human-led', 'assisted', 'autonomous'] as const)[i % 3],
+      maturity: 'proven',
+      // A realistic amount of cross-linking, without cycles.
+      dependencies: i > 0 && i % 4 === 0 ? [`a${i - 1}`] : [],
+      skills: [],
+      tools: [],
+      inputs: [],
+      outputs: [],
+      replaces: [],
+      humanInLoop: { owner: 'o', approvalPoints: [], retainedByHumans: [] },
+      buildNotes: [],
+      evolution: { manual: 'm', assisted: 'a', autonomous: 'x' },
+      recommendedOrder: i,
+    })),
+    skills: [],
+    tools: [],
+    commandCenters: [],
+    companyBrain: { id: 'b', name: 'B', slug: 'b', tagline: 't', description: 'd', sections: [], sources: [] },
+  });
+}
+
 /**
  * §27 requires the graph to stay smooth with hundreds of nodes. Layout is the
  * only super-linear step, so it is the one worth measuring.
  */
 describe('performance at scale', () => {
-  function syntheticCatalog(agentCount: number) {
-    const functionCount = 12;
-    return loadCatalog({
-      departments: [
-        { id: 'd', name: 'D', slug: 'd', description: 'x', mission: 'm', accent: 'amber', icon: 'Target', order: 0 },
-      ],
-      functionGroups: Array.from({ length: functionCount }, (_, i) => ({
-        id: `f${i}`,
-        departmentId: 'd',
-        name: `F${i}`,
-        slug: `f${i}`,
-        description: 'x',
-        order: i,
-      })),
-      agents: Array.from({ length: agentCount }, (_, i) => ({
-        id: `a${i}`,
-        departmentId: 'd',
-        functionId: `f${i % functionCount}`,
-        name: `Agent ${i}`,
-        slug: `agent-${i}`,
-        shortDescription: 's',
-        description: 'd',
-        businessOutcome: 'o',
-        autonomy: (['human-led', 'assisted', 'autonomous'] as const)[i % 3],
-        maturity: 'proven',
-        // A realistic amount of cross-linking, without cycles.
-        dependencies: i > 0 && i % 4 === 0 ? [`a${i - 1}`] : [],
-        skills: [],
-        tools: [],
-        inputs: [],
-        outputs: [],
-        replaces: [],
-        humanInLoop: { owner: 'o', approvalPoints: [], retainedByHumans: [] },
-        buildNotes: [],
-        evolution: { manual: 'm', assisted: 'a', autonomous: 'x' },
-        recommendedOrder: i,
-      })),
-      skills: [],
-      tools: [],
-      commandCenters: [],
-      companyBrain: { id: 'b', name: 'B', slug: 'b', tagline: 't', description: 'd', sections: [], sources: [] },
-    });
-  }
 
   it('lays out 300 agents correctly and quickly', () => {
     const big = syntheticCatalog(300);
@@ -295,5 +297,37 @@ describe('performance at scale', () => {
     const started = performance.now();
     upstreamClosure(deep, 'a996');
     expect(performance.now() - started).toBeLessThan(50);
+  });
+});
+
+describe('label orientation', () => {
+  it('keeps agent labels upright where the ring has room for them', () => {
+    const layout = computeLayout({ catalog, focusDepartmentId: 'dep-sales', visibleAgentIds: null });
+    const agents = layout.nodes.filter((n) => n.kind === 'agent');
+    expect(agents).not.toHaveLength(0);
+    expect(agents.every((n) => n.labelMode === 'horizontal')).toBe(true);
+  });
+
+  it('falls back to rotated labels once the ring is crowded', () => {
+    const big = syntheticCatalog(300);
+    const layout = computeLayout({ catalog: big, focusDepartmentId: 'd', visibleAgentIds: null });
+    const agents = layout.nodes.filter((n) => n.kind === 'agent');
+    expect(agents.every((n) => n.labelMode === 'radial')).toBe(true);
+  });
+
+  it('never mixes the two treatments within one ring', () => {
+    for (const department of catalog.departments) {
+      const layout = computeLayout({ catalog, focusDepartmentId: department.id, visibleAgentIds: null });
+      const modes = new Set(layout.nodes.filter((n) => n.kind === 'agent').map((n) => n.labelMode));
+      expect(modes.size).toBe(1);
+    }
+  });
+
+  it('leaves every other kind of node upright', () => {
+    const layout = computeLayout({ catalog, focusDepartmentId: 'dep-sales', visibleAgentIds: null });
+    for (const node of layout.nodes) {
+      if (node.kind === 'agent') continue;
+      expect(node.labelMode).toBe('horizontal');
+    }
   });
 });

@@ -4,7 +4,12 @@ import { memo } from 'react';
 import { AGENT_STATUS_LABEL, AUTONOMY_LABEL, type AgentStatus, type Autonomy } from '@/lib/schemas';
 import { AUTONOMY_STYLE, accentVar, statusVar } from '@/lib/ui/tokens';
 import type { GraphNode } from '@/lib/graph/types';
-import { NodeShell, radialLabelTransform, type NodeInteraction } from './node-shell';
+import {
+  NodeShell,
+  radialLabelTransform,
+  radialTextPlacement,
+  type NodeInteraction,
+} from './node-shell';
 
 interface AgentNodeProps extends NodeInteraction {
   node: GraphNode;
@@ -31,7 +36,10 @@ export const AgentNode = memo(function AgentNode({
   const autonomy: Autonomy = node.autonomy ?? 'assisted';
   const style = AUTONOMY_STYLE[autonomy];
   const accent = accentVar(node.accent);
-  const label = radialLabelTransform(node, 11);
+  // Which orientation reads better is a property of the ring, so the layout
+  // decides it; the node just draws what it was handed.
+  const upright = node.labelMode === 'horizontal' ? radialTextPlacement(node, 11) : null;
+  const radial = upright ? null : radialLabelTransform(node, 11);
 
   const r = node.radius;
   const ringR = r + 4.5;
@@ -84,11 +92,29 @@ export const AgentNode = memo(function AgentNode({
         />
       )}
 
-      <g transform={label.transform}>
-        <text className="graph-label graph-label-agent" textAnchor={label.anchor} dominantBaseline="middle">
+      {upright ? (
+        <text
+          className="graph-label graph-label-agent"
+          x={upright.x}
+          y={upright.y}
+          textAnchor={upright.anchor}
+          dominantBaseline="middle"
+        >
           {node.label}
         </text>
-      </g>
+      ) : (
+        radial && (
+          <g transform={radial.transform}>
+            <text
+              className="graph-label graph-label-agent"
+              textAnchor={radial.anchor}
+              dominantBaseline="middle"
+            >
+              {node.label}
+            </text>
+          </g>
+        )
+      )}
     </NodeShell>
   );
 });

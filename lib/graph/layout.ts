@@ -1,7 +1,14 @@
 import { hierarchy, tree, type HierarchyNode } from 'd3-hierarchy';
 import type { Catalog } from '@/lib/catalog';
 import type { Agent, AgentId, DepartmentId } from '@/lib/schemas';
-import { BRAIN_NODE_ID, type Bounds, type GraphEdge, type GraphLayout, type GraphNode } from './types';
+import {
+  BRAIN_NODE_ID,
+  type Bounds,
+  type GraphEdge,
+  type GraphLayout,
+  type GraphNode,
+  type LabelMode,
+} from './types';
 
 /* ---------------------------------------------------------------------------
    Geometry constants. Everything else is derived, so no coordinate is ever
@@ -111,6 +118,51 @@ function boundsOf(nodes: readonly GraphNode[]): Bounds {
   return { minX, minY, maxX, maxY };
 }
 
+/* ---------------------------------------------------------------------------
+   Label orientation
+
+   A rotated radial label is the only treatment that scales: labels fan out with
+   their ring, so they never collide however many siblings there are. The price
+   is that one at the top or bottom of the circle ends up near-vertical, which is
+   genuinely hard to read. Upright labels are better there — but only where they
+   fit, and whether they fit is geometry rather than taste.
+   ------------------------------------------------------------------------ */
+
+/** Agent label line height, from the 10.5px type size, plus breathing room. */
+const LABEL_LINE_HEIGHT = 14;
+
+/**
+ * Estimated rendered width of a label. The layout is pure and runs with no DOM,
+ * so it cannot measure text. The 10.5px agent label measures 5.0–6.1px per
+ * character in the browser, so 6.2 sits just above the widest real case: the
+ * estimate errs long, which fails safe toward the rotated labels that always fit.
+ */
+function estimateLabelWidth(text: string): number {
+  return text.length * 6.2 + 20;
+}
+
+/**
+ * Whether every label on a ring can stay upright.
+ *
+ * Two neighbours can both stay upright only if they are far enough apart
+ * horizontally to stand side by side, or far enough apart vertically to sit on
+ * separate lines. One crowded pair sends the whole ring back to rotated labels:
+ * a ring that mixes the two treatments reads as a bug rather than a decision.
+ */
+function uprightLabelsFit(angles: readonly number[], radius: number, labelWidth: number): boolean {
+  const sorted = [...angles].sort((a, b) => a - b);
+  for (let index = 1; index < sorted.length; index += 1) {
+    const previous = sorted[index - 1];
+    const current = sorted[index];
+    if (previous === undefined || current === undefined) continue;
+    // Positions are (sin, -cos) · radius, so these are the on-screen gaps.
+    const horizontal = Math.abs(Math.sin(current) - Math.sin(previous)) * radius;
+    const vertical = Math.abs(Math.cos(current) - Math.cos(previous)) * radius;
+    if (horizontal < labelWidth && vertical < LABEL_LINE_HEIGHT) return false;
+  }
+  return true;
+}
+
 /** Ring radius wide enough to give `count` siblings `minArc` of separation. */
 function ringRadius(count: number, minArc: number, arcSpan: number, floor: number): number {
   if (count <= 1) return floor;
@@ -139,6 +191,7 @@ function overviewLayout(input: LayoutInput): GraphLayout {
     accent: null,
     autonomy: null,
     parentId: null,
+    labelMode: 'horizontal',
   };
   nodes.push(brain);
 
@@ -165,6 +218,7 @@ function overviewLayout(input: LayoutInput): GraphLayout {
       accent: department.accent,
       autonomy: null,
       parentId: BRAIN_NODE_ID,
+      labelMode: 'horizontal',
     });
 
     edges.push({
@@ -254,6 +308,20 @@ function departmentLayout(input: LayoutInput): GraphLayout {
     .separation((a, b) => (a.parent === b.parent ? 1 : 2));
   layoutTree(rootNode);
 
+  // Decided here rather than in the node component because only the layout knows
+  // how crowded the ring is (§2: the component stays dumb).
+  const agentAngles = rootNode
+    .leaves()
+    .filter((leaf) => leaf.data.kind === 'agent')
+    .map((leaf) => DEPARTMENT_ARC_START + ((leaf as HierarchyNode<TreeDatum> & { x?: number }).x ?? 0));
+  const widestAgentLabel = functionData.reduce(
+    (widest, fn) => fn.children.reduce((w, child) => Math.max(w, estimateLabelWidth(child.label)), widest),
+    0,
+  );
+  const agentLabelMode: LabelMode = uprightLabelsFit(agentAngles, agentRing, widestAgentLabel)
+    ? 'horizontal'
+    : 'radial';
+
   const radiusForDepth = (depth: number): number =>
     depth === 0 ? 0 : depth === 1 ? functionRing : agentRing;
 
@@ -273,6 +341,7 @@ function departmentLayout(input: LayoutInput): GraphLayout {
     accent: null,
     autonomy: null,
     parentId: null,
+    labelMode: 'horizontal',
   };
   nodes.push(brain);
 
@@ -296,6 +365,8 @@ function departmentLayout(input: LayoutInput): GraphLayout {
       accent: department.accent,
       autonomy: datum.agent?.autonomy ?? null,
       parentId: node.parent?.data.id ?? BRAIN_NODE_ID,
+      // Only the agent ring is dense enough for orientation to be a question.
+      labelMode: datum.kind === 'agent' ? agentLabelMode : 'horizontal',
     });
 
     const parent = node.parent as (HierarchyNode<TreeDatum> & { x?: number }) | null;
